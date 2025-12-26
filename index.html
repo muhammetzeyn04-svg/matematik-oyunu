@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Matematik Oyunu</title>
+
+<style>
+body{
+  margin:0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg,#89f7fe,#66a6ff);
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.game{
+  background:white;
+  width:380px;
+  padding:20px;
+  border-radius:20px;
+  text-align:center;
+  box-shadow:0 15px 30px rgba(0,0,0,.25);
+}
+
+.hidden{ display:none; }
+
+h2{ margin-top:5px; }
+
+.stage button{
+  margin:4px;
+  padding:8px 10px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+.locked{
+  background:#ccc;
+  cursor:not-allowed;
+}
+
+.unlocked{
+  background:#4facfe;
+  color:white;
+}
+
+select,input,button{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  font-size:16px;
+  border-radius:10px;
+  border:1px solid #ccc;
+}
+
+.check{
+  background:#43e97b;
+  color:white;
+  border:none;
+  cursor:pointer;
+}
+
+.question{
+  font-size:28px;
+  margin:15px 0;
+}
+
+.stats{
+  display:flex;
+  justify-content:space-between;
+  margin-top:10px;
+  font-weight:bold;
+}
+
+.feedback{
+  height:24px;
+  margin-top:8px;
+}
+
+.correctAnim{
+  animation: pop .4s;
+}
+
+@keyframes pop{
+  0%{transform:scale(1)}
+  50%{transform:scale(1.1)}
+  100%{transform:scale(1)}
+}
+</style>
+</head>
+
+<body>
+
+<div class="game" id="menu">
+  <h2>🧠 Matematik Oyunu</h2>
+
+  <p>Aşama seç</p>
+
+  <div class="stage">
+    <button id="s1" class="unlocked" onclick="startStage(1)">➕ Toplama</button>
+    <button id="s2" class="locked">➖ Çıkarma 🔒</button>
+    <button id="s3" class="locked">➗ Bölme 🔒</button>
+    <button id="s4" class="locked">🔢 Hepsi 🔒</button>
+  </div>
+
+  <select id="level">
+    <option value="easy">Kolay</option>
+    <option value="medium">Orta</option>
+    <option value="hard">Zor</option>
+  </select>
+</div>
+
+<!-- OYUN EKRANI -->
+<div class="game hidden" id="game">
+  <h2 id="stageTitle"></h2>
+
+  <div class="question" id="question"></div>
+
+  <input type="number" id="answer" placeholder="Cevabın">
+  <button class="check" onclick="check()">Kontrol Et</button>
+
+  <div class="feedback" id="feedback"></div>
+
+  <div class="stats">
+    <div>⭐ <span id="score">0</span></div>
+    <div>✅ <span id="correct">0</span>/10</div>
+  </div>
+
+  <audio id="ok" src="https://www.soundjay.com/human/applause-8.mp3"></audio>
+  <audio id="no" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
+</div>
+
+<!-- TEBRİKLER -->
+<div class="game hidden" id="win">
+  <h2>🎉 Tebrikler!</h2>
+  <p>Aşamayı başarıyla geçtin 👏</p>
+  <button onclick="goMenu()">Menüye Dön</button>
+</div>
+
+<script>
+let stage = 1;
+let ops = ["+"];
+let a,b,answer;
+let correct = 0;
+let score = 0;
+let unlocked = 1;
+
+function rand(max){ return Math.floor(Math.random()*max)+1; }
+
+function startStage(s){
+  if(s > unlocked) return;
+  stage = s;
+  correct = 0;
+  score = 0;
+
+  if(stage===1) ops=["+"];
+  if(stage===2) ops=["-"];
+  if(stage===3) ops=["/"];
+  if(stage===4) ops=["+","-","/"];
+
+  document.getElementById("menu").classList.add("hidden");
+  document.getElementById("game").classList.remove("hidden");
+
+  document.getElementById("stageTitle").innerText =
+    ["","➕ Toplama","➖ Çıkarma","➗ Bölme","🔢 Hepsi"][stage];
+
+  newQuestion();
+}
+
+function newQuestion(){
+  let level = document.getElementById("level").value;
+  let max = level==="easy"?10:level==="medium"?20:50;
+
+  let op = ops[rand(ops.length)-1];
+  a = rand(max);
+  b = rand(max);
+  if(op==="/"){ a = a*b; }
+
+  answer = eval(`${a}${op}${b}`);
+  document.getElementById("question").innerText = `${a} ${op} ${b}`;
+  document.getElementById("answer").value="";
+  document.getElementById("feedback").innerText="";
+}
+
+function check(){
+  let user = Number(document.getElementById("answer").value);
+  let fb = document.getElementById("feedback");
+  let game = document.getElementById("game");
+
+  if(user === answer){
+    correct++;
+    score += 10;
+    fb.innerText="👏 Doğru!";
+    fb.style.color="green";
+    document.getElementById("ok").play();
+    game.classList.add("correctAnim");
+    setTimeout(()=>game.classList.remove("correctAnim"),300);
+  }else{
+    fb.innerText="🙃 Yanlış";
+    fb.style.color="red";
+    document.getElementById("no").play();
+  }
+
+  document.getElementById("correct").innerText = correct;
+  document.getElementById("score").innerText = score;
+
+  if(correct >= 10){
+    finishStage();
+  }else{
+    setTimeout(newQuestion,800);
+  }
+}
+
+function finishStage(){
+  document.getElementById("game").classList.add("hidden");
+  document.getElementById("win").classList.remove("hidden");
+
+  if(unlocked < stage + 1){
+    unlocked = stage + 1;
+    if(unlocked <= 4){
+      document.getElementById("s"+unlocked).className="unlocked";
+      document.getElementById("s"+unlocked).innerText =
+        document.getElementById("s"+unlocked).innerText.replace("🔒","");
+    }
+  }
+}
+
+function goMenu(){
+  document.getElementById("win").classList.add("hidden");
+  document.getElementById("menu").classList.remove("hidden");
+}
+</script>
+
+</body>
+</html>
